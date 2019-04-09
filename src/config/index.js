@@ -1,3 +1,6 @@
+
+// Globals
+let hostname
 class Config {
   static get () {
     return new Config()
@@ -59,9 +62,16 @@ class Config {
   }
 
   /* - - - Configured for server - - - */
-  get hostname () {
-    return process.env.HOSTNAME || 'http://150aae4a.ngrok.io/' // TODO: change to another default
+  setHostname (url) {
+    hostname = url
   }
+
+  get hostname () {
+    if (hostname) return hostname
+    if (!this._hostname) this._hostname = process.env.HOSTNAME || 'http://150aae4a.ngrok.io/' // TODO: change to another default
+    return this._hostname
+  }
+
   get port () {
     return process.env.PORT || '4390'
   }
@@ -72,8 +82,12 @@ class Config {
 
   get allowedOrigin () {
     if (this.isDev) return process.env.DEV_ORIGIN || 'http://localhost:8086'
-    if (!process.env.ALLOWED_ORIGIN) throw Error('Declare an ALLOWED_ORIGIN of frontend in .env for production.')
+    if (!process.env.ALLOWED_ORIGIN) throw Error('Declare production ALLOWED_ORIGIN for pp-web origin url in .env')
     return process.env.ALLOWED_ORIGIN
+  }
+
+  get ngrokHelperPort () {
+    return process.env.NGROK_HELPER_PORT || '4040'
   }
 
   /* - - - Redis - - - */
@@ -86,7 +100,7 @@ class Config {
   }
 
   get redisPassword () {
-    return process.env.REDIS_PASSWORD || null
+    return process.env.REDIS_PASSWORD
   }
 
   asInt (str, dfault) {

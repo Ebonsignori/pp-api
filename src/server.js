@@ -47,8 +47,6 @@ class Server extends Generic {
   }
 
   initializeServer () {
-    this.logger.info('Initializing server')
-
     const http = require('http')
     const express = require('express')
     const app = express()
@@ -95,11 +93,9 @@ class Server extends Generic {
     // Attach io instance to express making it accessible as req.app.get('io') in routes
     this.app.set('io', io)
 
-    if (this.config.isDev) {
-      this.logger.info(chalk`
-       Server and socket are up and listening.
-       On port: {magenta.bold ${this.config.port}}.`)
-    }
+    this.logger.info(chalk`Server and socket are up and listening. On port: {magenta.bold ${this.config.port}}.`)
+
+    if (this.config.isDev) require('./lib/utils').getDevUrl(this.config, this.logger)
 
     return true
   }
@@ -129,7 +125,6 @@ class Server extends Generic {
 
 let server
 if (isMain) {
-  console.log('starting...')
   server = new Server()
   server.start().then(() => {
     // On success

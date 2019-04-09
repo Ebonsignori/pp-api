@@ -1,9 +1,8 @@
 version: "3"
 
 services:
-  pp_bot_redis:
+  redis:
     image: redis
-    container_name: pp_bot_redis
     restart: on-failure
     ports:
       - "6378:6379"

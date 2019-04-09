@@ -6,10 +6,9 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon server.js",
-    "up": "docker-compose up -d",
-    "down": "docker-compose down",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon src/server.js",
+    "dev.up": "docker-compose -f ./docker/docker-compose.yml -p pp-api up -d",
+    "dev.down": "docker-compose -f ./docker/docker-compose.yml -p pp-api down"
   },
   "author": "Evan Bonsignori",
   "license": "ISC",

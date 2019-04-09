@@ -24,7 +24,16 @@ class RedisWrapper extends Generic {
   initializeRedis () {
     const redisConfig = {}
     if (this.config.redisPassword) redisConfig.password = this.config.redisPassword
-    return new Redis(this.config.redisPort, this.config.redisHost, redisConfig)
+
+    let client
+    try {
+      client = new Redis(this.config.redisPort, this.config.redisHost, redisConfig)
+    } catch (err) {
+      console.error('Error starting Redis:')
+      console.error(err)
+      process.exit(1)
+    }
+    return client
   }
 }
 
