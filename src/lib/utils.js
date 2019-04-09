@@ -3,7 +3,7 @@
 const chalk = require('chalk')
 const axios = require('axios')
 
-async function getDevUrl (config, logger) {
+async function determineDevUrl (config, logger) {
   let ngrokUp = false
   let firstError = true
   while (!ngrokUp) {
@@ -17,8 +17,9 @@ async function getDevUrl (config, logger) {
       if (!firstError) {
         logger.info('Ngrok connection found!')
       }
-      this.logger.info(chalk`Ngrok Url: {blue.bold ${config.hostname}}.`)
+      logger.info(chalk`Ngrok Url: {blue.bold ${config.hostname}}.`)
       ngrokUp = true
+      return
     } catch (err) {
       if (firstError) {
         logger.error(chalk`{red.bold Ngrok is not running.} Please start with script: {blue.bold npm run dev.up}`)
@@ -35,5 +36,5 @@ async function sleep (ms) {
 }
 
 module.exports = {
-  getDevUrl
+  determineDevUrl
 }

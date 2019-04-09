@@ -2,7 +2,7 @@ const passport = require('passport')
 const GitHubStrategy = require('passport-github').Strategy
 const Storage = require('../lib/storage')
 
-module.exports = (storage, config, logger) => {
+module.exports = (config, logger) => {
   // Use github oauth for authentication
   passport.use(new GitHubStrategy({
     clientID: config.githubClientId,
