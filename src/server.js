@@ -14,13 +14,13 @@ class Server extends Generic {
 
   constructor (opts = {}) {
     super(opts)
+    this._redisClient = opts.redisClient
     this._redis = opts.redis
-    this._storage = opts.storage
   }
 
-  get redis () {
-    if (!this._redis) this._redis = require('./lib/redis-client').get()
-    return this._redis
+  get redisClient () {
+    if (!this._redisClient) this._redisClient = require('./lib/redis-client').get()
+    return this._redisClient
   }
 
   async start () {
@@ -29,7 +29,7 @@ class Server extends Generic {
     const app = express()
 
     // Apply express config
-    const session = require('./config/express-middlewares')(app, this.config, this.logger, this.redis.client)
+    const session = require('./config/express-middlewares')(app, this.config, this.logger, this.redisClient.client)
 
     // Get dev url
     if (this.config.isDev) await require('./lib/utils').determineDevUrl(this.config, this.logger)

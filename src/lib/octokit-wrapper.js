@@ -23,7 +23,7 @@ class OctokitWrapper extends Generic {
     this._user = opts.user
     this._owner = opts.owner
     this._repo = opts.repo
-    this._storage = opts.storage
+    this._redis = opts._redis
   }
 
   get user () {
@@ -41,17 +41,17 @@ class OctokitWrapper extends Generic {
     return this._repo
   }
 
-  get storage () {
-    if (!this._storage) {
-      this._storage = require('../lib/storage').get({
+  get redis () {
+    if (!this._redis) {
+      this._redis = require('../lib/redis-wrapper').get({
         user: this.user
       })
     }
-    return this._storage
+    return this._redis
   }
 
   async getOauthToken () {
-    if (!this._oauthToken) this._oauthToken = await this.storage.getOauthToken()
+    if (!this._oauthToken) this._oauthToken = await this.redis.getOauthToken()
     return this._oauthToken
   }
 

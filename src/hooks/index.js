@@ -1,6 +1,6 @@
 const Middleware = require('@octokit/webhooks/middleware')
 const Generic = require('../lib/generic-class')
-const Storage = require('../lib/storage')
+const Redis = require('../lib/redis-wrapper')
 const events = require('../socket/events')
 
 class Hooks extends Generic {
@@ -48,14 +48,14 @@ class Hooks extends Generic {
   mountHooks () {
     this.webhooks.on(Hooks.ACTIONS.LABELED, async ({ id, name, payload }) => {
       const roomSlug = payload && payload.repository && payload.repository.full_name
-      const roomStorage = Storage.get({
+      const roomRedis = Redis.get({
         room: roomSlug
       })
-      const votingLabel = await roomStorage.getVotingLabel()
+      const votingLabel = await roomRedis.getVotingLabel()
       const hookLabel = payload && payload.label
       if (hookLabel.name === votingLabel) {
         // Add issue to room
-        await roomStorage.addIssue(payload.issue)
+        await roomRedis.addIssue(payload.issue)
         // Emit to room
         this.io.to(roomSlug).emit(events.ISSUE, payload.issue)
       }
@@ -63,14 +63,14 @@ class Hooks extends Generic {
 
     this.webhooks.on(Hooks.ACTIONS.UNLABELED, async ({ id, name, payload }) => {
       const roomSlug = payload && payload.repository && payload.repository.full_name
-      const roomStorage = Storage.get({
+      const roomRedis = Redis.get({
         room: roomSlug
       })
-      const votingLabel = await roomStorage.getVotingLabel()
+      const votingLabel = await roomRedis.getVotingLabel()
       const hookLabel = payload && payload.label
       if (hookLabel.name === votingLabel) {
         // Remove issue from room
-        await roomStorage.removeIssue(payload.issue)
+        await roomRedis.removeIssue(payload.issue)
         // Emit to room
         this.io.to(roomSlug).emit(events.ISSUE, payload.issue)
       }

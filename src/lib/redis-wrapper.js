@@ -24,9 +24,9 @@ const initialSession = {
 }
 
 // Should be instantiated and used with a user and/or room name
-class Storage extends Generic {
+class ReddisWrapper extends Generic {
   static get (opts) {
-    return Generic.get(Storage, opts)
+    return Generic.get(ReddisWrapper, opts)
   }
 
   constructor (opts = {}) {
@@ -293,4 +293,4 @@ class Storage extends Generic {
   }
 }
 
-module.exports = Storage
+module.exports = ReddisWrapper

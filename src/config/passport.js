@@ -1,6 +1,6 @@
 const passport = require('passport')
 const GitHubStrategy = require('passport-github').Strategy
-const Storage = require('../lib/storage')
+const Redis = require('../lib/redis-wrapper')
 
 module.exports = (config, logger) => {
   // Use github oauth for authentication
@@ -9,12 +9,11 @@ module.exports = (config, logger) => {
     clientSecret: config.githubClientSecret,
     callbackURL: `${config.hostname}/oauth/redirect`
   }, async (accessToken, refreshToken, profile, cb) => {
-    // Save the oauth token for user in storage for octokit to use
-    const storage = Storage.get({
+    // Save the oauth token for user in redis for octokit to use
+    const redis = Redis.get({
       user: profile.username
     })
-    // await storage.resetUserStorage()
-    await storage.addOauthToken(accessToken)
+    await redis.addOauthToken(accessToken)
     logger.debug(`Added GH acces token: ${accessToken} for user: ${profile.username}.`)
     return cb(null, profile)
   }))

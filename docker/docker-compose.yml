@@ -4,7 +4,23 @@ services:
   redis:
     image: redis
     restart: on-failure
+    volumes:
+      - "./test-data/redis:/data"
     ports:
-      - "6378:6379"
+      - "${REDIS_PORT}:6379"
     expose:
-      - 6378
+      - ${REDIS_PORT}
+
+  postgres:
+    image: postgres:11.2-alpine
+    restart: on-failure
+    volumes:
+      - "./test-data/postgres:/var/lib/postgresql/data"
+    ports:
+      - "${DB_PORT}:5432"
+    expose:
+      - ${DB_PORT}
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}

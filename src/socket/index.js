@@ -3,7 +3,7 @@
 const Generic = require('../lib/generic-class')
 const events = require('./events')
 const OctokitWrapper = require('../lib/octokit-wrapper')
-const Storage = require('../lib/storage')
+const Redis = require('../lib/redis-wrapper')
 
 // TODO: move
 const STAGES = {
@@ -68,18 +68,18 @@ class Socket extends Generic {
         // Find active room instance
         const roomSlug = `${owner}/${repo}`
 
-        const roomStorage = new Storage({
+        const roomRedis = new Redis({
           room: roomSlug
         })
 
-        const activeRooms = await roomStorage.getActiveRooms()
+        const activeRooms = await roomRedis.getActiveRooms()
         const currentRoom = activeRooms && activeRooms.find(activeRoom => activeRoom === roomSlug)
         if (!currentRoom) { // Must have joined room first
           console.error(`User needs to join room before voting. This shouldn't be reached from client, if it is fix bug.`)
           return
         }
 
-        await roomStorage.setGameState(initialGameState)
+        await roomRedis.setGameState(initialGameState)
         io.to(currentRoom).emit(events.GAME_STATE, { gameState: initialGameState })
       })
 
@@ -97,20 +97,20 @@ class Socket extends Generic {
         // Find active room instance
         const roomSlug = `${owner}/${repo}`
 
-        const roomStorage = new Storage({
+        const roomRedis = new Redis({
           room: roomSlug
         })
 
-        const activeRooms = await roomStorage.getActiveRooms()
+        const activeRooms = await roomRedis.getActiveRooms()
         const currentRoom = activeRooms && activeRooms.find(activeRoom => activeRoom === roomSlug)
         if (!currentRoom) { // Must have joined room first
           console.error(`User needs to join room before voting. This shouldn't be reached from client, if it is fix bug.`)
           return
         }
 
-        const gameState = await roomStorage.getGameState()
+        const gameState = await roomRedis.getGameState()
         gameState.stage = STAGES.RESULTS
-        await roomStorage.setGameState(gameState)
+        await roomRedis.setGameState(gameState)
         io.to(currentRoom).emit(events.GAME_STATE, { gameState })
       })
 
@@ -129,11 +129,11 @@ class Socket extends Generic {
         // Find active room instance
         const roomSlug = `${owner}/${repo}`
 
-        const roomStorage = new Storage({
+        const roomRedis = new Redis({
           room: roomSlug
         })
 
-        const activeRooms = await roomStorage.getActiveRooms()
+        const activeRooms = await roomRedis.getActiveRooms()
         const currentRoom = activeRooms && activeRooms.find(activeRoom => activeRoom === roomSlug)
         if (!currentRoom) { // Must have joined room first
           console.error(`User needs to join room before voting. This shouldn't be reached from client, if it is fix bug.`)
@@ -141,10 +141,10 @@ class Socket extends Generic {
         }
 
         // Update the label and update issues by new label
-        await roomStorage.setVotingLabel(label)
+        await roomRedis.setVotingLabel(label)
         io.to(currentRoom).emit(events.VOTE_LABEL, { label })
         const issues = await getIssues(socket, user, owner, repo, label)
-        await roomStorage.setIssues(issues)
+        await roomRedis.setIssues(issues)
         io.to(currentRoom).emit(events.ISSUES, { issues })
       })
 
@@ -163,11 +163,11 @@ class Socket extends Generic {
         // Find active room instance
         const roomSlug = `${owner}/${repo}`
 
-        const roomStorage = new Storage({
+        const roomRedis = new Redis({
           room: roomSlug
         })
 
-        const activeRooms = await roomStorage.getActiveRooms()
+        const activeRooms = await roomRedis.getActiveRooms()
         const currentRoom = activeRooms && activeRooms.find(activeRoom => activeRoom === roomSlug)
         if (!currentRoom) { // Must have joined room first
           console.error(`User needs to join room before voting. This shouldn't be reached from client, if it is fix bug.`)
@@ -175,7 +175,7 @@ class Socket extends Generic {
         }
 
         // Update gameState with user's vote
-        let gameState = await roomStorage.getGameState()
+        let gameState = await roomRedis.getGameState()
         gameState = {
           ...gameState,
           userVotes: {
@@ -183,7 +183,7 @@ class Socket extends Generic {
             [user.username]: value
           }
         }
-        await roomStorage.setGameState(gameState)
+        await roomRedis.setGameState(gameState)
 
         io.to(currentRoom).emit(events.GAME_STATE, {
           gameState: {
@@ -208,11 +208,11 @@ class Socket extends Generic {
         // Find active room instance
         const roomSlug = `${owner}/${repo}`
 
-        const roomStorage = new Storage({
+        const roomRedis = new Redis({
           room: roomSlug
         })
 
-        const activeRooms = await roomStorage.getActiveRooms()
+        const activeRooms = await roomRedis.getActiveRooms()
         const currentRoom = activeRooms && activeRooms.find(activeRoom => activeRoom === roomSlug)
         if (!currentRoom) { // Must have joined room first
           console.error(`User needs to join room before voting. This shouldn't be reached from client, if it is fix bug.`)
@@ -222,7 +222,7 @@ class Socket extends Generic {
         const gameState = { ...initialGameState }
         gameState.stage = STAGES.VOTE
         gameState.issue = issue
-        await roomStorage.setGameState(gameState)
+        await roomRedis.setGameState(gameState)
 
         io.to(currentRoom).emit(events.GAME_STATE, { gameState })
       })
@@ -242,39 +242,39 @@ class Socket extends Generic {
         // Determine room
         const roomSlug = `${owner}/${repo}`
 
-        const roomStorage = new Storage({
+        const roomRedis = new Redis({
           room: roomSlug
         })
 
         // Add to activeRooms if not already active
-        const activeRooms = await roomStorage.getActiveRooms()
+        const activeRooms = await roomRedis.getActiveRooms()
         if (!activeRooms || !activeRooms.includes(roomSlug)) {
-          await roomStorage.addActiveRoom(roomSlug)
+          await roomRedis.addActiveRoom(roomSlug)
         }
 
         // Add user to active users
-        let users = await roomStorage.getUsers()
+        let users = await roomRedis.getUsers()
         if (!users || (users && !users.find(existingUser => existingUser.username === user.username))) { // Failsafe (bug catch) user should not be part of active room and joining
-          await roomStorage.addUser(user)
+          await roomRedis.addUser(user)
         }
-        users = await roomStorage.getUsers()
+        users = await roomRedis.getUsers()
 
         // Get current room label
-        const label = await roomStorage.getVotingLabel()
+        const label = await roomRedis.getVotingLabel()
 
         // TODO: Combine this with room init for inactive rooms?
         // Get issues if not already fetched
-        let issues = await roomStorage.getIssues()
+        let issues = await roomRedis.getIssues()
         if (!issues) {
           issues = await getIssues(socket, user, owner, repo, label)
-          await roomStorage.setIssues(issues)
+          await roomRedis.setIssues(issues)
         }
 
         // Get or init game state
-        let gameState = await roomStorage.getGameState()
+        let gameState = await roomRedis.getGameState()
         if (!gameState) {
           gameState = { ...initialGameState }
-          await roomStorage.setGameState(gameState)
+          await roomRedis.setGameState(gameState)
         }
         // If in voting phase, obscure votes
         if (gameState.stage === STAGES.VOTE) gameState.userVotes = obscureVotes(gameState.userVotes)

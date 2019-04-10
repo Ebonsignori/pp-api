@@ -27,10 +27,6 @@ class Config {
     return process.env.LOGGING_LEVEL || 'info'
   }
 
-  get storageDirectory () {
-    return process.env.STORAGE_DIRECTORY || 'storage-files'
-  }
-
   /* - - - Configured for github App - - - */
   get githubAppId () {
     return process.env.GITHUB_APP_ID
