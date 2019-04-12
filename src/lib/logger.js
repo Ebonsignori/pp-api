@@ -1,6 +1,7 @@
 'use strict'
 
 const chalk = require('chalk')
+const config = require('../config/config').get()
 
 const LEVELS = {
   SILLY: 'silly',
@@ -11,7 +12,12 @@ const LEVELS = {
   IGNORE: 'ignore' // Don't print anything
 }
 
-module.exports = (loggingLevel) => {
+let logger
+
+if (!logger) initLogger(config.loggingLevel)
+logger.initLogger = initLogger
+
+function initLogger (loggingLevel) {
   const { createLogger, format, transports } = require('winston')
 
   if (!Object.values(LEVELS).includes(loggingLevel)) {
@@ -30,7 +36,7 @@ module.exports = (loggingLevel) => {
     }
   }
 
-  const logger = createLogger({
+  logger = createLogger({
     level: loggingLevel,
     format: format.combine(
       format.colorize(),
@@ -67,6 +73,6 @@ module.exports = (loggingLevel) => {
       chalk`{red.bold You must define the ${envVarName} environment variable in the .env file.}`
     )
   }
-
-  return logger
 }
+
+module.exports = logger

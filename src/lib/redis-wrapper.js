@@ -1,6 +1,9 @@
-const Generic = require('./generic-class')
-let store = require('./redis-client').get().client
+'use strict'
 
+// const config = require('../config/config').get()
+// const logger = require('./logger')
+
+let store = require('./redis-client')
 // TODO: move and DRY with socket/index.js
 const STAGES = {
   CHOSE: 'choose',
@@ -24,14 +27,12 @@ const initialSession = {
 }
 
 // Should be instantiated and used with a user and/or room name
-class ReddisWrapper extends Generic {
+class ReddisWrapper {
   static get (opts) {
-    return Generic.get(ReddisWrapper, opts)
+    return new ReddisWrapper(opts)
   }
 
   constructor (opts = {}) {
-    super(opts)
-
     this._user = opts.user && opts.user.toLowerCase()
     this._room = opts.room && opts.room.toLowerCase()
     this._store = opts.store
@@ -50,11 +51,6 @@ class ReddisWrapper extends Generic {
   get room () {
     if (!this._room) throw Error('A Storage instance using room storage must have a room name.')
     return this._room
-  }
-
-  get logger () {
-    if (!this._logger) this._logger = require('../config/logging')(this.config.loggingLevel)
-    return this._logger
   }
 
   // - - - Object under username storage - - -

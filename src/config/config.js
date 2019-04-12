@@ -1,3 +1,4 @@
+'use strict'
 
 // Globals
 let hostname
@@ -6,13 +7,7 @@ class Config {
     return new Config()
   }
 
-  get logger () {
-    if (!this._logger) this._logger = require('./logging')(this.loggingLevel)
-    return this._logger
-  }
-
   constructor (opts = {}) {
-    this._logger = opts.logger
     this._isDev = opts.isDev
   }
 
@@ -25,6 +20,11 @@ class Config {
   // silly, debug, info, warn, error
   get loggingLevel () {
     return process.env.LOGGING_LEVEL || 'info'
+  }
+
+  /* - - - Users - - - */
+  get saltRounds () {
+    return 12
   }
 
   /* - - - Configured for github App - - - */
@@ -84,6 +84,39 @@ class Config {
 
   get ngrokHelperPort () {
     return process.env.NGROK_HELPER_PORT || '4040'
+  }
+
+  /* - - - Database - - - */
+  get dbHost () {
+    return process.env.DB_HOST || 'localhost'
+  }
+
+  get dbPort () {
+    return this.asInt(process.env.DB_PORT, 5433)
+  }
+
+  get dbUser () {
+    return process.env.DB_USER || 'root'
+  }
+
+  get dbPassword () {
+    return process.env.DB_PASSWORD || 'root'
+  }
+
+  get dbName () {
+    return process.env.DB_NAME || 'pp-api-db'
+  }
+
+  get dbPoolMin () {
+    return this.asInt(process.env.DB_POOL_MIN, 2)
+  }
+
+  get dbPoolMax () {
+    return this.asInt(process.env.DB_POOL_MAX, 10)
+  }
+
+  get postgresVersion () {
+    return process.env.POSTGRES_VERSION || '11.2'
   }
 
   /* - - - Redis - - - */

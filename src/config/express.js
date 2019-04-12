@@ -6,9 +6,11 @@ const session = require('express-session')
 const path = require('path')
 const RedisStore = require('connect-redis')(session)
 const cors = require('cors')
+const logger = require('../lib/logger')
+const config = require('./config').get()
 
 // Initialize Express middlewares
-module.exports = (app, config, logger, redisClient) => {
+module.exports = (app, redisClient) => {
   // Apply cors
   const corsOptions = {
     origin: config.allowedOrigin,

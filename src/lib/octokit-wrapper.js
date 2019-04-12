@@ -1,24 +1,19 @@
 'use strict'
 
-const Generic = require('./generic-class')
-// const App = require('@octokit/app')
 const Octokit = require('@octokit/rest')
-// const request = require('@octokit/request')
-
-// const fs = require('fs')
-// const path = require('path')
-// const privateKey = fs.readFileSync(path.join(__dirname, '..', '..', 'pkey.pem'))
+// const { getKnex, tables } = require('../lib/knex')
+// const knex = getKnex()
 
 // A new octokit instance should exist for each Owner/Repo
-class OctokitWrapper extends Generic {
+class OctokitWrapper {
   static get (opts) {
-    return Generic.get(OctokitWrapper, opts)
+    return new OctokitWrapper(opts)
   }
 
   constructor (opts) {
-    super(opts)
-
+    console.log(opts)
     this._oauthToken = opts.oauthToken
+    console.log(this._oauthToken)
     this._octokit = opts.octokit
     this._user = opts.user
     this._owner = opts.owner
@@ -50,8 +45,8 @@ class OctokitWrapper extends Generic {
     return this._redis
   }
 
-  async getOauthToken () {
-    if (!this._oauthToken) this._oauthToken = await this.redis.getOauthToken()
+  get oauthToken () {
+    if (!this._oauthToken) throw Error('Pass Github oauth token to Octokitwrapper')
     return this._oauthToken
   }
 
@@ -88,17 +83,11 @@ class OctokitWrapper extends Generic {
     //   ]
     // })
 
-    let oauthToken = await this.getOauthToken()
-    if (!oauthToken) {
-      console.error('No Auth token for user. Use OctokitWrapper.hasAuth() to verify before init.')
-      return
-    }
-
     console.log('has auth token: ')
-    console.log(oauthToken)
+    console.log(this.oauthToken)
 
     const octokit = Octokit({ // TODO: inject custom logger
-      auth: `token ${oauthToken}`,
+      auth: `token ${this.oauthToken}`,
       previews: [
         'symmetra-preview' // TODO: Separate these
       ]
@@ -107,8 +96,9 @@ class OctokitWrapper extends Generic {
     return octokit
   }
 
+  // TODO: actually fix this
   async hasAuth () {
-    if (!await this.getOauthToken()) return false
+    if (!this._oauthToken) return false
     return true
   }
 

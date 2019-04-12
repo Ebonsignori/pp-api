@@ -1,40 +1,25 @@
 'use strict'
 
 const Redis = require('ioredis')
-const Generic = require('./generic-class')
 
-let staticClient
-class RedisWrapper extends Generic {
-  static get (opts) {
-    return Generic.get(RedisWrapper, opts)
-  }
+const logger = require('../lib/logger')
+const config = require('../config/config').get()
 
-  constructor (opts) {
-    super(opts)
+let redis
 
-    this._client = opts.client
-    if (!this._client && !staticClient) staticClient = this.initializeRedis()
-  }
+if (!redis) initializeRedis()
 
-  get client () {
-    if (!this._client) this._client = staticClient
-    return this._client
-  }
+function initializeRedis () {
+  const redisConfig = {}
+  if (config.redisPassword) redisConfig.password = config.redisPassword
 
-  initializeRedis () {
-    const redisConfig = {}
-    if (this.config.redisPassword) redisConfig.password = this.config.redisPassword
-
-    let client
-    try {
-      client = new Redis(this.config.redisPort, this.config.redisHost, redisConfig)
-    } catch (err) {
-      console.error('Error starting Redis:')
-      console.error(err)
-      process.exit(1)
-    }
-    return client
+  try {
+    redis = new Redis(config.redisPort, config.redisHost, redisConfig)
+  } catch (err) {
+    logger.error('Error starting Redis:')
+    logger.error(err)
+    process.exit(1)
   }
 }
 
-module.exports = RedisWrapper
+module.exports = redis

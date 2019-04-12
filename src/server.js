@@ -4,23 +4,16 @@ require('dotenv').config() // Load private env from .env
 
 const isMain = require.main === module
 
-const Generic = require('./lib/generic-class')
 const chalk = require('chalk')
 
-class Server extends Generic {
+const config = require('./config/config').get()
+const logger = require('./lib/logger')
+const { initializeKnex } = require('./lib/knex')
+const redisClient = require('./lib/redis-client')
+
+class Server {
   static get (opts) {
-    return Generic.get(Server, opts)
-  }
-
-  constructor (opts = {}) {
-    super(opts)
-    this._redisClient = opts.redisClient
-    this._redis = opts.redis
-  }
-
-  get redisClient () {
-    if (!this._redisClient) this._redisClient = require('./lib/redis-client').get()
-    return this._redisClient
+    return new Server(opts)
   }
 
   async start () {
@@ -28,72 +21,66 @@ class Server extends Generic {
     const express = require('express')
     const app = express()
 
+    // Start knex
+    await initializeKnex()
+
     // Apply express config
-    const session = require('./config/express-middlewares')(app, this.config, this.logger, this.redisClient.client)
+    const session = require('./config/express')(app, redisClient)
 
     // Get dev url
-    if (this.config.isDev) await require('./lib/utils').determineDevUrl(this.config, this.logger)
+    if (config.isDev) await require('./lib/utils').determineDevUrl()
 
     // Apply passport (after fetching dev url)
-    const { initialize, passportSession } = require('./config/passport')(this.config, this.logger)
+    const { initialize, passportSession } = require('./config/passport')()
     app.use(initialize)
     app.use(passportSession)
 
     // Apply routes
-    const Routes = require('./routes').get({
-      config: this.config,
-      logger: this.logger
-    })
-    app.use(Routes.middleware)
+    app.use(require('./rest/router'))
 
     // Create server
     const server = http.createServer(app)
 
     // Init socket
-    const io = require('./socket').initializeSocket(server, session, this.logger, this.config)
+    const io = require('./socket')(server, session)
 
+    // TODO: Use hooks?
     // Apply GitHub webhooks
-    const Hooks = require('./hooks').get({
-      config: this.config,
-      logger: this.logger,
-      io
-    })
-    app.use(Hooks.middleware)
+    // const Hooks = require('./rest/hooks').get({ io })
+    // app.use(Hooks.middleware)
 
     // Start server
     try {
-      this._runningServer = await server.listen(this.config.port)
+      this._runningServer = await server.listen(config.port)
     } catch (error) {
-      console.error(error)
+      logger.error(error)
       return false
     }
 
     // Attach io instance to express making it accessible as req.app.get('io') in routes
     app.set('io', io)
 
-    this.logger.info(chalk`Server and socket are up and listening. On port: {magenta.bold ${this.config.port}}.`)
+    logger.info(chalk`Server and socket are up and listening. On port: {magenta.bold ${config.port}}.`)
 
     return true
   }
 
   async stop () {
     if (!this._runningServer) {
-      this.logger.error('No server is currently running')
+      logger.error('No server is currently running')
       return false
     }
 
     try {
       await this._runningServer.close()
     } catch (err) {
-      this.logger.error(err)
+      logger.error(err)
       return false
     }
 
-    if (this.config.isDev) {
-      this.logger.info(chalk`
-        Port {magenta.bold ${this.config.port}} closed.
-        `)
-    }
+    logger.info(chalk`
+    Port {magenta.bold ${config.port}} closed.
+    `)
 
     return true
   }
@@ -107,7 +94,7 @@ if (isMain) {
     // server.logger.info('')
   }).catch((err) => {
     // On fail
-    console.error(err)
+    logger.error(err)
   })
 }
 

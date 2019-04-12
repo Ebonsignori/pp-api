@@ -1,16 +1,18 @@
+'use strict'
+
 const Middleware = require('@octokit/webhooks/middleware')
-const Generic = require('../lib/generic-class')
+
+const config = require('../config/config').get()
+const logger = require('../lib/logger')
 const Redis = require('../lib/redis-wrapper')
 const events = require('../socket/events')
 
-class Hooks extends Generic {
+class Hooks {
   static get (opts) {
-    return Generic.get(Hooks, opts)
+    return new Hooks(opts)
   }
 
   constructor (opts) {
-    super(opts)
-
     this._webhooks = opts.webhooks
     this._io = opts.io
     this._mounted = opts.mounted
@@ -34,13 +36,13 @@ class Hooks extends Generic {
   }
 
   initializeHooks () {
-    if (!this.config.githubWebhookSecret) {
-      throw Error(this.logger.missingEnvVar('GITHUB_WEBHOOK_SECRET'))
+    if (!config.githubWebhookSecret) {
+      throw Error(logger.missingEnvVar('GITHUB_WEBHOOK_SECRET'))
     }
 
     return new Middleware({
-      secret: this.config.githubWebhookSecret,
-      path: this.config.githubWebhookUrl // defaults to "/github-webhooks"
+      secret: config.githubWebhookSecret,
+      path: config.githubWebhookUrl // defaults to "/github-webhooks"
     })
   }
 
@@ -77,7 +79,7 @@ class Hooks extends Generic {
     })
 
     this.webhooks.on('error', (error) => {
-      this.logger.error(`GH Webhooks Error: "${error.event.name} handler: ${error.stack}"`)
+      logger.error(`GH Webhooks Error: "${error.event.name} handler: ${error.stack}"`)
     })
 
     this._mounted = true // TODO: Use better pattern?

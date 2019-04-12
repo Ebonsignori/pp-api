@@ -12,10 +12,6 @@ exports.shorthands = {
     notNull: true,
     default: false
   },
-  name: {
-    type: 'varchar(32)',
-    notNull: true
-  },
   nullableName: {
     type: 'varchar(32)',
     notNull: false
@@ -31,24 +27,43 @@ exports.up = (pgm) => {
   pgm.createTable('user', {
     id: 'cuid',
     isGuest: 'option',
-    username: 'name',
+    username: {
+      type: 'varchar(32)',
+      notNull: true,
+      unique: true
+    },
     email: {
       type: 'varchar(255)',
-      notNull: false
+      notNull: false,
+      unique: true
     },
-    hasGoogleOauth: 'option',
-    googleOauth: {
+    googleOauthId: {
+      type: 'varchar(255)',
+      notNull: false,
+      unique: true
+    },
+    googleOauthAccess: {
       type: 'varchar(255)',
       notNull: false
     },
-    googleBlob: 'json',
-    hasGithubOuath: 'option',
-    githubOauth: {
+    googleOauthRefresh: {
       type: 'varchar(255)',
       notNull: false
     },
-    githubBlob: 'json',
-    givenName: 'name',
+    githubOauthId: {
+      type: 'varchar(255)',
+      notNull: false,
+      unique: true
+    },
+    githubOauthAccess: {
+      type: 'varchar(255)',
+      notNull: false
+    },
+    githubOauthRefresh: {
+      type: 'varchar(255)',
+      notNull: false
+    },
+    givenName: 'nullableName',
     familyName: 'nullableName',
     avatarUrl: {
       type: 'varchar',
@@ -72,10 +87,44 @@ exports.up = (pgm) => {
 
   pgm.createTable('room', {
     id: 'cuid',
+    name: {
+      type: 'varchar(32)',
+      notNull: true
+    },
     voteValueType: 'voteType',
-    activeUserIds: 'varchar(36)[]',
     revealVotes: 'option',
     useTimer: 'option',
+    allowRevote: 'option',
+    allowGuests: 'option',
+    allowedUsers: {
+      type: 'json',
+      notNull: false
+    },
+    whoCanStart: {
+      type: 'varchar(32)',
+      match: '(admin|creator|user|guest)',
+      notNull: true
+    },
+    whoCanVote: {
+      type: 'varchar(32)',
+      match: '(admin|creator|user|guest)',
+      notNull: true
+    },
+    whoCanEnd: {
+      type: 'varchar(32)',
+      match: '(admin|creator|user|guest)',
+      notNull: true
+    },
+    whoCanRevote: {
+      type: 'varchar(32)',
+      match: '(admin|creator|user|guest)',
+      notNull: true
+    },
+    whoCanDecide: {
+      type: 'varchar(32)',
+      match: '(admin|creator|user|guest)',
+      notNull: true
+    },
     deleted: 'option',
     deletedAt: {
       type: 'timestamp',
@@ -90,12 +139,12 @@ exports.up = (pgm) => {
 
   pgm.createTable('map_user_and_room', {
     id: 'cuid',
+    isActive: 'option',
     userId: referencesTable('user'),
     roomId: referencesTable('room'),
-    creator: 'option',
-    privileges: { // Privilege level of user in room (e.g. super-admin, admin, voter, guest)
+    privileges: { // Privilege level of user in room
       type: 'varchar(32)',
-      match: '(super_admin|admin|voter|guest)',
+      match: '(admin|creator|user|guest)',
       notNull: true
     }
   })
@@ -109,6 +158,19 @@ exports.up = (pgm) => {
     title: 'varchar',
     body: 'varchar',
     sourceUrl: 'varchar',
+    isFromGithub: 'option',
+    githubIssueOwner: {
+      type: 'varchar(255)',
+      notNull: false
+    },
+    githubIssueRepo: {
+      type: 'varchar(255)',
+      notNull: false
+    },
+    githubIssueNumber: {
+      type: 'varchar(255)',
+      notNull: false
+    },
     deleted: 'option',
     deletedAt: {
       type: 'timestamp',

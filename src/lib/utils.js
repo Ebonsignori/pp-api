@@ -1,9 +1,11 @@
 'use strict'
 
+const config = require('../config/config').get()
+const logger = require('./logger')
 const chalk = require('chalk')
 const axios = require('axios')
 
-async function determineDevUrl (config, logger) {
+async function determineDevUrl () {
   let ngrokUp = false
   let firstError = true
   while (!ngrokUp) {
@@ -11,9 +13,9 @@ async function determineDevUrl (config, logger) {
     try {
       resp = await axios.get(`http://localhost:${config.ngrokHelperPort}/api/tunnels`)
       const tunnels = resp.data && resp.data.tunnels
-      const httpTunnel = tunnels[0].public_url
-      // const httpsTunnel = tunnels[1].public_url
-      config.setHostname(httpTunnel)
+      // const httpTunnel = tunnels[0].public_url
+      const httpsTunnel = tunnels[1].public_url
+      config.setHostname(httpsTunnel)
       if (!firstError) {
         logger.info('Ngrok connection found!')
       }
