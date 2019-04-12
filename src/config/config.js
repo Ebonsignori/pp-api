@@ -77,7 +77,7 @@ class Config {
   }
 
   get allowedOrigin () {
-    if (this.isDev) return process.env.DEV_ORIGIN || 'http://localhost:8086'
+    // if (this.isDev) return process.env.DEV_ORIGIN || 'http://localhost:8086'
     if (!process.env.ALLOWED_ORIGIN) throw Error('Declare production ALLOWED_ORIGIN for pp-web origin url in .env')
     return process.env.ALLOWED_ORIGIN
   }

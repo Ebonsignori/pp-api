@@ -21,6 +21,9 @@ const initialGameState = {
   userVotes: {} // no one has voted yet
 }
 
+// TODO: Horribly sloppy I hope no one else ever sees this.
+const roomUsers = {}
+
 function mountSocket (server, session) {
   if (!server) throw new Error('initializeSocket must be called with a server instance.')
   if (!session) throw new Error('initializeSocket must be called with a session instance.')
@@ -184,17 +187,18 @@ function mountSocket (server, session) {
     // // -- Payload
     // // roomId
     // // guestUsername (when not logged in)
+
     socket.on(events.JOIN_ROOM, async (payload) => {
       let user = await getLoggedIn(socket)
       // Create guest user if not logged in
       if (!user) {
-        if (!payload.guestUsername) {
-          throw Error('TODO: No guest username')
-        }
+        // if (!payload.guestUsername) {
+        // throw Error('TODO: No guest username')
+        // }
         user = await knex(tables.USER).insert({
           id: cuid(),
           isGuest: true,
-          username: payload.guestUsername
+          username: payload.guestUsername || `Guest ${new Date().getTime()}`
         })
       }
       if (!payload.roomId) {
@@ -213,7 +217,18 @@ function mountSocket (server, session) {
       // Get room contents and send to user
       const promises = [null, null, null]
 
-      // TODO: Make promise
+      // TODO: Very temporary
+      if (!roomUsers[room.id]) {
+        roomUsers[room.id] = []
+        roomUsers[room.id].push(user)
+      } else {
+        const alreadyActive = roomUsers[room.id].find(u => u.username === user.username)
+        if (!alreadyActive) {
+          roomUsers[room.id].push(user)
+        }
+      }
+
+      // TODO: Make promise?
       // Get privileges and set as active
       let privileges = room.privileges
       if (!room.userId) {
@@ -234,7 +249,7 @@ function mountSocket (server, session) {
       } else {
         // Update user as active in room
         const userRoomPrivileges = await knex(tables.MAP_USER_AND_ROOM)
-          .where('userId', user.id)
+          .where('userId', room.userId)
           .update({ isActive: true })
           .returning('*')
           // TODO: handle possible error
@@ -264,7 +279,9 @@ function mountSocket (server, session) {
         )
         .where('r.id', room.id)
 
-      const [ todo, users, stories ] = await Promise.all(promises)
+      const [ todo, realUsers, stories ] = await Promise.all(promises)
+
+      // console.log(users)
 
       // Get redis instance for room
       const roomRedis = new Redis({ room: room.id })
@@ -286,12 +303,11 @@ function mountSocket (server, session) {
 
       // Let others in room know user joined
       socket.join(room.id)
-      io.to(room.id).emit(events.USER, { user })
+      io.to(room.id).emit(events.USERS, { users: roomUsers[room.id] })
 
       // Send the subscriber the current game state, users and stories
       io.to(socket.id).emit(events.JOINED, {
         gameState,
-        users,
         stories
       })
       // socket.emit(events.USERS, { users })
@@ -303,11 +319,12 @@ function mountSocket (server, session) {
   io.on('disconnect', async (socket) => {
     // TODO: Also have a user leave a room when they logout (bc that will be through rest endpoint and this logic will not be reached)
     let userId = await getLoggedIn(socket, true)
-    await knex(tables.MAP_USER_AND_ROOM)
-      .where('userId', userId)
-      .update({
-        isActive: false
-      })
+    // await knex(tables.MAP_USER_AND_ROOM)
+    //   .where('userId', userId)
+    //   .update({
+    //     isActive: false
+    //   })
+    console.log('user disconnected', userId)
   })
 
   return io
