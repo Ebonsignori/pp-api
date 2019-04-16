@@ -3,7 +3,7 @@
 const config = require('../config/config').get()
 
 function isDevelopment (req, res, next) {
-  if (config.isDev) return next()
+  if (config.isDev || config.isTest) return next()
   res.status(404).send('Debug endpoints are only available during development')
 }
 

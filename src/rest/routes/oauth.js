@@ -5,7 +5,7 @@ const passport = require('passport')
 
 // const config = require('../../config/config').get()
 // const logger = require('../../lib/logger')
-const { isLoggedIn, attachSocketId } = require('../custom-middlewares')
+const { attachSocketId } = require('../custom-middlewares')
 
 // Called from client with socketId param. Triggers github oauth
 router.get('/github', attachSocketId, passport.authenticate('github'))
@@ -24,15 +24,6 @@ router.get('/redirect', passport.authenticate('github'), (req, res) => {
     io.in(req.session.socketId).emit('authenticate-github', req.user) // socketId should be attached from GET /oauth/github
   }
   res.end()
-})
-
-router.get('/logout', isLoggedIn, (req, res) => {
-  const user = req.user
-  req.logout()
-  res.status(200).json({
-    msg: `Logged out of ${user.username}`,
-    user: user
-  })
 })
 
 // router.get('/authenticate', async (req, res) => {

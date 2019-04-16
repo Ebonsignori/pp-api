@@ -6,8 +6,6 @@ const isMain = require.main === module
 
 const chalk = require('chalk')
 
-const config = require('./config/config').get()
-const logger = require('./lib/logger')
 const { initializeKnex } = require('./lib/knex')
 const redisClient = require('./lib/redis-client')
 
@@ -16,7 +14,22 @@ class Server {
     return new Server(opts)
   }
 
-  async start () {
+  constructor (opts = {}) {
+    this._config = opts.config
+    this._logger = opts.logger
+  }
+
+  get config () {
+    if (!this._config) this._config = require('./config/config').get()
+    return this._config
+  }
+
+  get logger () {
+    if (!this._logger) this._logger = require('./lib/logger')
+    return this._logger
+  }
+
+  async start (port) {
     const http = require('http')
     const express = require('express')
     const app = express()
@@ -28,7 +41,7 @@ class Server {
     const session = require('./config/express')(app, redisClient)
 
     // Get dev url
-    if (config.isDev) await require('./lib/utils').determineDevUrl()
+    if (this.config.isDev) await require('./lib/utils').determineDevUrl()
 
     // Apply passport (after fetching dev url)
     const { initialize, passportSession } = require('./config/passport')()
@@ -51,35 +64,35 @@ class Server {
 
     // Start server
     try {
-      this._runningServer = await server.listen(config.port)
+      this._runningServer = await server.listen(port || this.config.port)
     } catch (error) {
-      logger.error(error)
+      this.logger.error(error)
       return false
     }
 
     // Attach io instance to express making it accessible as req.app.get('io') in routes
     app.set('io', io)
 
-    logger.info(chalk`Server and socket are up and listening. On port: {magenta.bold ${config.port}}.`)
+    this.logger.info(chalk`Server and socket are up and listening. On port: {magenta.bold ${this.config.port}}.`)
 
     return true
   }
 
   async stop () {
     if (!this._runningServer) {
-      logger.error('No server is currently running')
+      this.logger.error('No server is currently running')
       return false
     }
 
     try {
       await this._runningServer.close()
     } catch (err) {
-      logger.error(err)
+      this.logger.error(err)
       return false
     }
 
-    logger.info(chalk`
-    Port {magenta.bold ${config.port}} closed.
+    this.logger.info(chalk`
+    Port {magenta.bold ${this.config.port}} closed.
     `)
 
     return true
@@ -94,9 +107,9 @@ if (isMain) {
     // server.logger.info('')
   }).catch((err) => {
     // On fail
-    logger.error(err)
+    console.error(err)
   })
 }
 
-// Export server instance
-module.exports = server
+// Export Server Class
+module.exports = Server

@@ -13,8 +13,13 @@ class Config {
 
   // Determine NODE_ENV
   get isDev () {
-    if (!this._isDev) this._isDev = ['development', 'dev', 'test', 'testing', 'local'].some(x => x.toUpperCase() === String(process.env.NODE_ENV).toUpperCase())
+    if (!this._isDev) this._isDev = ['development', 'dev', 'local'].some(x => x.toUpperCase() === String(process.env.NODE_ENV).toUpperCase())
     return this._isDev
+  }
+
+  get isTest () {
+    if (!this._isTest) this._isTest = ['test', 'testing'].some(x => x.toUpperCase() === String(process.env.NODE_ENV).toUpperCase())
+    return this._isTest
   }
 
   // silly, debug, info, warn, error
@@ -63,12 +68,14 @@ class Config {
   }
 
   get hostname () {
+    if (this.isTest) return 'localhost'
     if (hostname) return hostname
     if (!this._hostname) this._hostname = process.env.HOSTNAME || 'http://150aae4a.ngrok.io/' // TODO: change to another default
     return this._hostname
   }
 
   get port () {
+    if (this.isTest) return '4391'
     return process.env.PORT || '4390'
   }
 
@@ -77,7 +84,7 @@ class Config {
   }
 
   get allowedOrigin () {
-    // if (this.isDev) return process.env.DEV_ORIGIN || 'http://localhost:8086'
+    if (this.isDev) return process.env.DEV_ORIGIN || 'http://localhost:8086'
     if (!process.env.ALLOWED_ORIGIN) throw Error('Declare production ALLOWED_ORIGIN for pp-web origin url in .env')
     return process.env.ALLOWED_ORIGIN
   }
@@ -92,6 +99,7 @@ class Config {
   }
 
   get dbPort () {
+    if (this.isTest) return this.asInt(process.env.DB_TEST_PORT)
     return this.asInt(process.env.DB_PORT, 5433)
   }
 
@@ -125,6 +133,7 @@ class Config {
   }
 
   get redisPort () {
+    if (this.isTest) return this.asInt(process.env.REDIS_TEST_PORT)
     return this.asInt(process.env.REDIS_PORT, 6379)
   }
 

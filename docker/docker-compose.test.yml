@@ -1,0 +1,20 @@
+version: "3"
+
+services:
+  redis:
+    image: redis
+    ports:
+      - "${REDIS_TEST_PORT}:6379"
+    expose:
+      - ${REDIS_TEST_PORT}
+
+  postgres:
+    image: postgres:${POSTGRES_VERSION}-alpine
+    ports:
+      - "${DB_TEST_PORT}:5432"
+    expose:
+      - ${DB_TEST_PORT}
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}

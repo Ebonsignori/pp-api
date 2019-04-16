@@ -22,7 +22,7 @@ router.get('/logged-in', async (req, res) => {
       user.githubLinked = true
       delete user.githubOauthId
     }
-    return res.status(200).json(user)
+    return res.status(201).json(user)
   }
 
   return res.status(400)
@@ -65,7 +65,7 @@ router.post('/register', async function registerNewUser (req, res) {
       user.githubLinked = true
       delete user.githubOauthId
     }
-    res.status(200).json(user)
+    res.status(201).json(user)
   } else {
     // TODO: Better errors
     res.status(500).send('Error')
@@ -101,20 +101,30 @@ router.post('/login', function (req, res, next) {
         user.githubLinked = true
         delete user.githubOauthId
       }
-      console.log(user)
       return res.json(user)
     })
   })(req, res, next)
 })
 
+// router.get('/logout', isLoggedIn, (req, res) => {
+//   const user = req.user
+//   req.logout()
+//   res.status(200).json({
+//     msg: `Logged out of ${user.username}`,
+//     user: user
+//   })
+// })
+
 router.get('/logout', isLoggedIn, function (req, res) {
-  const username = req.user.username
+  const user = req.user
   try {
     req.logout()
-    logger.silly(`User ${username} has logged out.`)
-    res.status(200).send(`User ${username} has logged out.`)
+    res.status(200).json({
+      msg: `Logged out of ${user.username}`,
+      user: user
+    })
   } catch (err) {
-    res.status(400).send(`User ${username} was unable to log out.`)
+    res.status(400).send(`User ${user.username} was unable to log out.`)
     logger.error(err)
   }
 })
