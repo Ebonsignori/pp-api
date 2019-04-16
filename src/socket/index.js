@@ -145,6 +145,11 @@ function mountSocket (server, session) {
       }
       await roomRedis.setGameState(gameState)
 
+      // Let user know what they voted for
+      io.to(socket.id).emit(events.VOTE, {
+        userVote: value
+      })
+      // Let room know user voted (but not the value of the vote)
       io.to(currentRoom).emit(events.GAME_STATE, {
         gameState: {
           ...gameState,
@@ -299,17 +304,27 @@ function mountSocket (server, session) {
         await roomRedis.setGameState(gameState)
       }
       // If in voting phase, obscure votes
-      if (gameState.stage === STAGES.VOTE) gameState.userVotes = obscureVotes(gameState.userVotes)
+      let userVote
+      if (gameState.stage === STAGES.VOTE) {
+        userVote = gameState.userVotes[user.username]
+        gameState.userVotes = obscureVotes(gameState.userVotes)
+      }
 
       // Let others in room know user joined
       socket.join(room.id)
       io.to(room.id).emit(events.USERS, { users: roomUsers[room.id] })
 
-      // Send the subscriber the current game state, users and stories
+      // Send the subscriber the current game state and stories
       io.to(socket.id).emit(events.JOINED, {
         gameState,
         stories
       })
+      // Send the subscriber their vote if they have voted
+      if (userVote) {
+        io.to(socket.id).emit(events.VOTE, {
+          userVote
+        })
+      }
       // socket.emit(events.USERS, { users })
       // socket.emit(events.STORIES, { stories })
     })

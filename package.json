@@ -11,7 +11,7 @@
     "dev.down": "docker-compose -f ./docker/docker-compose.yml -p pp-api down",
     "new-migration": "node-pg-migrate create",
     "migrate": "node-pg-migrate up --ignore-pattern=helpers.js",
-    "migrate-down": "node-pg-migrate down",
+    "migrate-down": "node-pg-migrate down --ignore-pattern=helpers.js",
     "test": "npm run test.up && npm run test.migrate && NODE_ENV=test LOGGING_LEVEL=warn mocha --recursive tests --exit && npm run test.down",
     "test.up": "docker-compose -f ./docker/docker-compose.test.yml -p pp-test up -d",
     "test.down": "docker-compose -f ./docker/docker-compose.test.yml -p pp-test down",
