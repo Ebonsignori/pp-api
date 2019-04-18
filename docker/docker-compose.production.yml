@@ -1,0 +1,26 @@
+version: "3"
+
+services:
+  redis:
+    image: redis
+    restart: on-failure
+    volumes:
+      - "./test-data/redis:/data"
+    ports:
+      - "${REDIS_PORT}:6379"
+    expose:
+      - ${REDIS_PORT}
+
+  postgres:
+    image: postgres:${POSTGRES_VERSION}-alpine
+    restart: on-failure
+    volumes:
+      - "./test-data/postgres:/var/lib/postgresql/data"
+    ports:
+      - "${DB_PORT}:5432"
+    expose:
+      - ${DB_PORT}
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}

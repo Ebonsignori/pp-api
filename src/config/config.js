@@ -57,11 +57,6 @@ class Config {
     return process.env.GITHUB_WEBHOOK_SECRET
   }
 
-  /* - - - Configured for Github repo - - - */
-  get votingLabelName () {
-    return process.env.VOTING_LABEL_NAME || 'swag-ready'
-  }
-
   /* - - - Configured for server - - - */
   setHostname (url) {
     hostname = url
