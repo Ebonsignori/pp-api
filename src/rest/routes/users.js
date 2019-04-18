@@ -22,13 +22,13 @@ router.get('/logged-in', async (req, res) => {
       user.githubLinked = true
       delete user.githubOauthId
     }
-    return res.status(201).json(user)
+    return res.status(200).json(user)
   }
 
   return res.status(400)
 })
 
-router.post('/register', async function registerNewUser (req, res) {
+router.post('/register', async function registerNewUser (req, res, next) {
   // TODO: Validate body
 
   const passwordHash = await bcrypt.hash(req.body.password, config.saltRounds)
@@ -65,11 +65,42 @@ router.post('/register', async function registerNewUser (req, res) {
       user.githubLinked = true
       delete user.githubOauthId
     }
-    res.status(201).json(user)
   } else {
     // TODO: Better errors
     res.status(500).send('Error')
   }
+
+  // TODO: reuse this from login
+  passport.authenticate('local', function (err, user, message) {
+    if (err) {
+      return next(err)
+    }
+    if (!user) {
+      // TODO: improve errors
+      if (message.doesNotExist) {
+        return res.status(404).send('username does not exist.')
+      }
+      if (message.badPassword) {
+        return res.status(403).send('Incorrect password.')
+      }
+      return res.status(500).send('Something went wrong while attempting to fetch your account. Please contact an admin.')
+    }
+    req.logIn(user, function (err) {
+      if (err) {
+        return next(err)
+      }
+      logger.silly(`User ${req.user.username} has logged in.`)
+
+      // TODO: Improve this / make generic
+      let user = { ...req.user }
+      delete user.password
+      if (user.githubOauthId) {
+        user.githubLinked = true
+        delete user.githubOauthId
+      }
+      return res.status(201).json(user)
+    })
+  })(req, res, next)
 })
 
 router.post('/login', function (req, res, next) {

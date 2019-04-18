@@ -59,8 +59,8 @@ class Server {
 
     // TODO: Use hooks?
     // Apply GitHub webhooks
-    // const Hooks = require('./rest/hooks').get({ io })
-    // app.use(Hooks.middleware)
+    const Hooks = require('./rest/hooks').get({ io })
+    app.use(Hooks.middleware)
 
     // Start server
     try {

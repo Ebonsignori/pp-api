@@ -6,7 +6,9 @@ const config = require('../config/config').get()
 const logger = require('../lib/logger')
 const Redis = require('../lib/redis-wrapper')
 const events = require('../socket/events')
+const { getKnex, tables } = require('../lib/knex')
 
+const knex = getKnex()
 class Hooks {
   static get (opts) {
     return new Hooks(opts)
@@ -49,33 +51,72 @@ class Hooks {
   // TODO: Separate these into service?
   mountHooks () {
     this.webhooks.on(Hooks.ACTIONS.LABELED, async ({ id, name, payload }) => {
-      const roomSlug = payload && payload.repository && payload.repository.full_name
-      const roomRedis = Redis.get({
-        room: roomSlug
-      })
-      const votingLabel = await roomRedis.getVotingLabel()
-      const hookLabel = payload && payload.label
-      if (hookLabel.name === votingLabel) {
-        // Add issue to room
-        await roomRedis.addIssue(payload.issue)
-        // Emit to room
-        this.io.to(roomSlug).emit(events.ISSUE, payload.issue)
-      }
+      // const roomSlug = payload && payload.repository && payload.repository.full_name
+      // const roomRedis = Redis.get({
+      //   room: roomSlug
+      // })
+      // const votingLabel = await roomRedis.getVotingLabel()
+      // const hookLabel = payload && payload.label
+      // if (hookLabel.name === votingLabel) {
+      //   // Add issue to room
+      //   await roomRedis.addIssue(payload.issue)
+      //   // Emit to room
+      //   this.io.to(roomSlug).emit(events.ISSUE, payload.issue)
+      // }
     })
 
     this.webhooks.on(Hooks.ACTIONS.UNLABELED, async ({ id, name, payload }) => {
-      const roomSlug = payload && payload.repository && payload.repository.full_name
-      const roomRedis = Redis.get({
-        room: roomSlug
-      })
-      const votingLabel = await roomRedis.getVotingLabel()
-      const hookLabel = payload && payload.label
-      if (hookLabel.name === votingLabel) {
-        // Remove issue from room
-        await roomRedis.removeIssue(payload.issue)
-        // Emit to room
-        this.io.to(roomSlug).emit(events.ISSUE, payload.issue)
+      // const roomSlug = payload && payload.repository && payload.repository.full_name
+      // const roomRedis = Redis.get({
+      //   room: roomSlug
+      // })
+      // const votingLabel = await roomRedis.getVotingLabel()
+      // const hookLabel = payload && payload.label
+      // if (hookLabel.name === votingLabel) {
+      //   // Remove issue from room
+      //   await roomRedis.removeIssue(payload.issue)
+      //   // Emit to room
+      //   this.io.to(roomSlug).emit(events.ISSUE, payload.issue)
+      // }
+
+      // TODO: add deletedAdd and maybe change deleted to voted or swagged
+      let story = await knex(tables.STORY)
+        .update({
+          deleted: true
+        })
+        .where('githubIssueLabel', payload.label.name)
+        .where('githubIssueId', payload.issue.id)
+        .returning('*')
+
+      if (story && story.length > 0) {
+        story = story[0]
+      } else {
+        return
       }
+
+      let roomStoryMap = await knex(tables.MAP_ROOM_AND_STORY)
+        .del()
+        .where('storyId', story.id)
+        .returning('*')
+
+      console.log(roomStoryMap)
+
+      if (roomStoryMap && roomStoryMap.length > 0) {
+        roomStoryMap = roomStoryMap[0]
+      } else {
+        return
+      }
+
+      const stories = await knex({ r: tables.ROOM })
+        .leftJoin(`${tables.MAP_ROOM_AND_STORY} as mras`, 'mras.roomId', 'r.id')
+        .leftJoin(`${tables.STORY} as s`, 's.id', 'mras.storyId')
+        .select(
+          's.*'
+        )
+        .where('r.id', roomStoryMap.roomId)
+        .where('s.deleted', false)
+
+      this.io.to(roomStoryMap.roomId).emit(events.STORIES, { stories })
     })
 
     this.webhooks.on('error', (error) => {

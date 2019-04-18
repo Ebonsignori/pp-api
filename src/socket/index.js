@@ -1,8 +1,9 @@
 'use strict'
 
 // const config = require('../config/config').get()
-const logger = require('../lib/logger')
+// const logger = require('../lib/logger')
 const events = require('./events')
+const errors = require('./errors')
 const OctokitWrapper = require('../lib/octokit-wrapper')
 const Redis = require('../lib/redis-wrapper')
 const cuid = require('cuid')
@@ -22,7 +23,7 @@ const initialGameState = {
 }
 
 // TODO: Horribly sloppy I hope no one else ever sees this.
-const roomUsers = {}
+let roomUsers = {}
 
 function mountSocket (server, session) {
   if (!server) throw new Error('initializeSocket must be called with a server instance.')
@@ -112,7 +113,14 @@ function mountSocket (server, session) {
     })
 
     socket.on(events.VOTE, async (payload) => {
-      const user = await getLoggedIn(socket)
+      let user
+      if (payload.guestUsername) {
+        user = {
+          username: payload.guestUsername
+        }
+      } else {
+        user = await getLoggedIn(socket)
+      }
       if (!user) return
 
       const roomId = payload.roomId
@@ -196,16 +204,31 @@ function mountSocket (server, session) {
     socket.on(events.JOIN_ROOM, async (payload) => {
       let user = await getLoggedIn(socket)
       // Create guest user if not logged in
-      if (!user) {
-        // if (!payload.guestUsername) {
-        // throw Error('TODO: No guest username')
-        // }
-        user = await knex(tables.USER).insert({
-          id: cuid(),
-          isGuest: true,
-          username: payload.guestUsername || `Guest ${new Date().getTime()}`
-        })
+      if (payload.guestUsername || !user) {
+        if (!payload.guestUsername) {
+          throw Error('TODO: No guest username or user.')
+        }
+
+        try {
+          user = await knex(tables.USER).insert({
+            id: cuid(),
+            isGuest: true,
+            username: payload.guestUsername || `Guest ${new Date().getTime()}`
+          }).returning('*')
+          // TODO: check for error
+          if (user && user.length > 0) {
+            user = user[0]
+          }
+        } catch (error) {
+          if (Number(error.code) === 23505) {
+            io.to(socket.id).emit(events.ERROR, {
+              errorType: errors.ALREADY_EXISTS
+            })
+            return
+          }
+        }
       }
+
       if (!payload.roomId) {
         throw Error('TODO: No payload id')
       }
@@ -240,7 +263,6 @@ function mountSocket (server, session) {
         // Add user to room
         const userRoomPrivileges = await knex(tables.MAP_USER_AND_ROOM)
           .insert({
-            id: cuid(),
             isActive: true,
             userId: user.id,
             roomId: room.id,
@@ -283,6 +305,7 @@ function mountSocket (server, session) {
           's.*'
         )
         .where('r.id', room.id)
+        .where('s.deleted', false)
 
       const [ todo, realUsers, stories ] = await Promise.all(promises)
 
@@ -328,6 +351,21 @@ function mountSocket (server, session) {
       // socket.emit(events.USERS, { users })
       // socket.emit(events.STORIES, { stories })
     })
+
+    socket.on(events.REMOVE_FROM_ROOM, async (payload) => {
+      const roomId = payload.roomId
+      const username = payload.username
+
+      // If user is guest, delete it
+      await knex(tables.USER)
+        .del()
+        .where('username', username)
+        .where('isGuest', true)
+        .returning('*')
+
+      roomUsers[roomId] = roomUsers[roomId].filter(u => u.username !== username)
+      io.to(roomId).emit(events.USERS, { users: roomUsers[roomId] })
+    })
   })
 
   // TODO: Tear down session after X time? OR set cookie expire elsewhere?
@@ -353,8 +391,10 @@ async function getLoggedIn (socket, onlyGetId) {
       .select('*')
       .where('id', userId)
       .first()
-    delete user.password
-    return user
+    if (user) {
+      delete user.password
+      return user
+    }
   }
   socket.emit(events.USER_NOT_LOGGED_IN)
   return false

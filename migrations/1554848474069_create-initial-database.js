@@ -20,6 +20,12 @@ exports.shorthands = {
     type: 'varchar(32)',
     match: '(fibonacci|modified_fibonacci|t_shirt|power_of_2|one_to_five|one_to_ten)',
     notNull: true
+  },
+  mapId: {
+    type: 'varchar(36)',
+    primaryKey: true,
+    notNull: true,
+    unique: true
   }
 }
 
@@ -138,7 +144,6 @@ exports.up = (pgm) => {
   })
 
   pgm.createTable('map_user_and_room', {
-    id: 'cuid',
     isActive: 'option',
     userId: referencesTable('user'),
     roomId: referencesTable('room'),
@@ -159,6 +164,14 @@ exports.up = (pgm) => {
     body: 'varchar',
     sourceUrl: 'varchar',
     isFromGithub: 'option',
+    githubIssueLabel: {
+      type: 'varchar',
+      notNull: false
+    },
+    githubIssueId: {
+      type: 'varchar(255)',
+      notNull: false
+    },
     githubIssueOwner: {
       type: 'varchar(255)',
       notNull: false
@@ -184,7 +197,6 @@ exports.up = (pgm) => {
   })
 
   pgm.createTable('map_room_and_story', {
-    id: 'cuid',
     storyId: referencesTable('story'),
     roomId: referencesTable('room')
   })

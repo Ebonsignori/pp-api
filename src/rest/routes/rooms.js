@@ -94,7 +94,6 @@ router.post('', isLoggedIn, async (req, res) => {
 
   // Add creator to room
   const userRoomMap = await knex(tables.MAP_USER_AND_ROOM).insert({
-    id: cuid(),
     userId: user.id,
     roomId: room.id,
     privileges: 'creator'
@@ -113,12 +112,13 @@ router.post('', isLoggedIn, async (req, res) => {
       body: story.body,
       sourceUrl: story.sourceUrl,
       isFromGithub: story.isFromGithub,
+      githubIssueLabel: story.githubIssueLabel,
+      githubIssueId: story.githubIssueId,
       githubIssueOwner: story.githubIssueOwner,
       githubIssueRepo: story.githubIssueRepo,
       githubIssueNumber: story.githubIssueNumber
     })
     mappings.push({
-      id: cuid(),
       storyId,
       roomId: room.id
     })
