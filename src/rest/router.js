@@ -3,6 +3,7 @@
 const router = require('express').Router()
 const { isDevelopment } = require('./custom-middlewares')
 
+router.use('/monitor', require('./routes/monitor'))
 router.use('/issues', require('./routes/issues'))
 router.use('/debug', isDevelopment, require('./routes/debug'))
 router.use('/users', require('./routes/users'))
