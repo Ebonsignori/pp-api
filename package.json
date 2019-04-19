@@ -1,6 +1,7 @@
 {
   "name": "planning-poker",
   "version": "1.0.0",
+  "private": true,
   "repository": "https://github.com/Ebonsignori/pp-bot",
   "description": "api of Planning Poker",
   "main": "src/server.js",
