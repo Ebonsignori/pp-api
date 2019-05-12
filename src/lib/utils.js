@@ -24,7 +24,7 @@ async function determineDevUrl () {
       return
     } catch (err) {
       if (firstError) {
-        logger.error(chalk`{red.bold Ngrok is not running.} Please start with script: {blue.bold npm run dev.up}`)
+        logger.error(chalk`{red.bold Ngrok is not running.} Please start with script: {blue.bold ngrok http ${config.port}}`)
         firstError = false
         logger.debug('Waiting for ngrok connection...')
       }

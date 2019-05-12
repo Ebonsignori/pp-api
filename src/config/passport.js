@@ -11,6 +11,7 @@ const { getKnex, tables } = require('../lib/knex')
 const knex = getKnex()
 
 module.exports = () => {
+  // Local login
   passport.use(new LocalStrategy(async (username, password, cb) => {
     let user
     try {
@@ -52,6 +53,34 @@ module.exports = () => {
       logger.warn(`Incorrect password for username: ${username}`)
       cb(null, false, { badPassword: true })
     }
+  }))
+
+  // Guest login
+  passport.use('local-guest', new LocalStrategy(async (username, password, cb) => {
+    let user
+    try {
+      user = await knex(tables.USER)
+        .select(
+          'id',
+          'isGuest',
+          'password',
+          'username',
+          'createdAt')
+        .where('username', username)
+        .where('isGuest', true)
+        .where('deleted', false)
+        .first()
+    } catch (error) {
+      logger.error('Unable to fetch guest by username:')
+      logger.error(error)
+    }
+    if (!user) {
+      logger.silly(`Account DNE: ${username}`)
+      cb(null, false, { doesNotExist: true })
+      return
+    }
+
+    cb(null, user)
   }))
 
   // Authorize github (link to account)
@@ -121,7 +150,7 @@ module.exports = () => {
       .first()
 
     if (user) {
-      delete user.password
+      if (user.password) delete user.password
     } else {
       user = false
     }

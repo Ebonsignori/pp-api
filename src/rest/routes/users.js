@@ -37,6 +37,7 @@ router.post('/register', async function registerNewUser (req, res, next) {
   try {
     user = await knex(tables.USER).insert({
       id: cuid(),
+      isGuest: false,
       username: req.body.username,
       givenName: req.body.givenName,
       familyName: req.body.familyName,
@@ -137,14 +138,96 @@ router.post('/login', function (req, res, next) {
   })(req, res, next)
 })
 
-// router.get('/logout', isLoggedIn, (req, res) => {
-//   const user = req.user
-//   req.logout()
-//   res.status(200).json({
-//     msg: `Logged out of ${user.username}`,
-//     user: user
-//   })
-// })
+router.post('/register-guest', async function registerNewUser (req, res, next) {
+  // TODO: Validate body
+
+  if (req.body.username.includes('_')) {
+    res.status(400).json({
+      type: 'contains_',
+      msg: 'Guest username cannot contain underscores'
+    })
+  }
+
+  const uniqueUsername = `${req.body.username}_${cuid()}`
+  let user
+  try {
+    user = await knex(tables.USER).insert({
+      id: cuid(),
+      isGuest: true,
+      username: uniqueUsername
+    }).returning('*')
+  } catch (err) {
+    logger.error(err)
+    return res.status(400).send('TODO: register error')
+  }
+
+  // TODO: Better error handling
+  if (!user) {
+    logger.error('User was not inserted')
+    res.status(500).send('User was not registered')
+    return
+  }
+
+  logger.silly(chalk`A new guest user with username: {green ${user.username}} just registered`)
+
+  if (!user || !user.length) {
+    // TODO: Better errors
+    res.status(500).send('Error')
+  }
+
+  // TODO: reuse this from login
+  passport.authenticate('local-guest', function (err, user, message) {
+    if (err) {
+      return next(err)
+    }
+    if (!user) {
+      // TODO: improve errors
+      if (message.doesNotExist) {
+        return res.status(404).send('guest does not exist.')
+      }
+      return res.status(500).send('Something went wrong while attempting to fetch guest account. Please contact an admin.')
+    }
+    req.logIn(user, function (err) {
+      if (err) {
+        return next(err)
+      }
+      logger.silly(`User ${req.user.username} has logged in.`)
+
+      // TODO: Improve this / make generic
+      let user = { ...req.user }
+      return res.status(201).json(user)
+    })
+  })({
+    // Mock req obj params for passport auth
+    body: {
+      username: uniqueUsername,
+      password: 'place_holder'
+    }
+  }, res, next)
+})
+
+router.post('/login-guest', function (req, res, next) {
+  // TODO: Validate that uname and password were passed and match standards
+  passport.authenticate('local-guest', function (err, user, message) {
+    if (err) {
+      return next(err)
+    }
+    if (!user) {
+      // TODO: improve errors
+      if (message.doesNotExist) {
+        return res.status(404).send('guest does not exist.')
+      }
+      return res.status(500).send('Something went wrong while attempting to fetch guest account. Please contact an admin.')
+    }
+    req.logIn(user, function (err) {
+      if (err) {
+        return next(err)
+      }
+      logger.silly(`User ${req.user.username} has logged in.`)
+      return res.json(user)
+    })
+  })(req, res, next)
+})
 
 router.get('/logout', isLoggedIn, function (req, res) {
   const user = req.user

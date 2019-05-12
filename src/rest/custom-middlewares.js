@@ -8,7 +8,7 @@ function isDevelopment (req, res, next) {
 }
 
 function isLoggedIn (req, res, next) {
-  // If not logged in, redirect to login
+  // If not logged in, send error
   if (!req.user) {
     return res.status(403).json({
       notLoggedIn: true
@@ -16,6 +16,17 @@ function isLoggedIn (req, res, next) {
   }
   next()
 }
+
+// function isGuestLoggedIn (req, res, next) {
+//   // If not logged in, send error
+//   if (!req.user || !req.user.isGuest) {
+//     return res.status(403).json({
+//       isGuest: true,
+//       notLoggedIn: true
+//     })
+//   }
+//   next()
+// }
 
 // TODO: throw error if socketId is missing?
 function attachSocketId (req, res, next) {

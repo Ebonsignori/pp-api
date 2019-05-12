@@ -11,9 +11,7 @@ class OctokitWrapper {
   }
 
   constructor (opts) {
-    console.log(opts)
     this._oauthToken = opts.oauthToken
-    console.log(this._oauthToken)
     this._octokit = opts.octokit
     this._user = opts.user
     this._owner = opts.owner
@@ -82,9 +80,6 @@ class OctokitWrapper {
     //     'symmetra-preview' // TODO: Separate these
     //   ]
     // })
-
-    console.log('has auth token: ')
-    console.log(this.oauthToken)
 
     const octokit = Octokit({ // TODO: inject custom logger
       auth: `token ${this.oauthToken}`,
