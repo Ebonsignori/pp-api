@@ -100,15 +100,21 @@ router.post('/:owner/:repo/:number', isLoggedIn, async (req, res) => {
       })
       applyingLabel = applyingLabel.data
     } catch (error) {
+      logger.error(`Unable to create new label. Please add manually.`)
       return res.status(500).send(`Unable to create new label. Please add manually.`)
     }
   }
 
-  // If removing voting label is enabled
+  // If removing existing voting label is enabled
   if (req.body.votingLabel) {
-    // const removingLabel = labels.data.find(label => label.name === req.body.votingLabel)
-    await octokit.issues.removeLabel({ owner, repo, number, name: req.body.votingLabel })
-    // TODO: Errors
+    const removingLabel = labels.data.find(label => label.name === req.body.votingLabel)
+    if (removingLabel) {
+      try {
+        await octokit.issues.removeLabel({ owner, repo, number, name: req.body.votingLabel })
+      } catch (error) {
+        logger.debug(`Tried to remove an existing label that wasn't present on issue`)
+      }
+    }
   }
 
   // Get issue with existing labels
@@ -121,6 +127,7 @@ router.post('/:owner/:repo/:number', isLoggedIn, async (req, res) => {
   }
 
   if (existingIssue.status !== 200) {
+    logger.error(`Unable to fetch issue #${number} from GitHub for ${owner}/${repo}`)
     return res.status(500).send(`Unable to fetch issue #${number} from GitHub for ${owner}/${repo}`)
   }
 

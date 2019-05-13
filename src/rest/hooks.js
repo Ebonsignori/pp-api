@@ -99,8 +99,6 @@ class Hooks {
         .where('storyId', story.id)
         .returning('*')
 
-      console.log(roomStoryMap)
-
       if (roomStoryMap && roomStoryMap.length > 0) {
         roomStoryMap = roomStoryMap[0]
       } else {
