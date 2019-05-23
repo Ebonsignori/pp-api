@@ -78,16 +78,16 @@ router.post('/:owner/:repo/:number', isLoggedIn, async (req, res) => {
   // Get existing labels from Github
   let labels
   try {
-    labels = await octokit.request('GET /repos/:owner/:repo/labels', { owner, repo })
+    const options = octokit.issues.listLabelsForRepo.endpoint.merge({
+      owner,
+      repo
+    })
+    labels = await octokit.paginate(options)
   } catch (error) {
     return res.status(404).send(`Unable to find labels from GitHub for ${owner}/${repo}`)
   }
 
-  if (labels.status !== 200) {
-    return res.status(500).send(`Unable to fetch labels from GitHub for ${owner}/${repo}`)
-  }
-
-  let applyingLabel = labels.data.find(label => label.name === req.body.decision)
+  let applyingLabel = labels.find(label => label.name === req.body.decision)
   if (!applyingLabel) {
     // Create the label
     try {
@@ -107,7 +107,7 @@ router.post('/:owner/:repo/:number', isLoggedIn, async (req, res) => {
 
   // If removing existing voting label is enabled
   if (req.body.votingLabel) {
-    const removingLabel = labels.data.find(label => label.name === req.body.votingLabel)
+    const removingLabel = labels.find(label => label.name === req.body.votingLabel)
     if (removingLabel) {
       try {
         await octokit.issues.removeLabel({ owner, repo, number, name: req.body.votingLabel })

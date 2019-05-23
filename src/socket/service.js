@@ -231,7 +231,7 @@ class SocketService {
 
     // Get vote value type of room
     const room = await knex(tables.ROOM)
-      .select('voteValueType')
+      .select('id', 'voteValueType')
       .where('id', roomId)
       .first()
 
@@ -247,11 +247,20 @@ class SocketService {
       story = story[0]
     }
 
+    // Get updated stories
+    const stories = await knex({ r: tables.ROOM })
+      .leftJoin(`${tables.MAP_ROOM_AND_STORY} as mras`, 'mras.roomId', 'r.id')
+      .leftJoin(`${tables.STORY} as s`, 's.id', 'mras.storyId')
+      .select(
+        's.*'
+      )
+      .where('r.id', room.id)
+
     // Update game stage
     const gameState = await updateGameStage(roomId, SocketService.STAGES.CHOSE, null)
 
     // Send updated story to users
-    this.io.to(roomId).emit(events.STORY, { story })
+    this.io.to(roomId).emit(events.STORIES, { stories })
     this.io.to(roomId).emit(events.GAME_STATE, { gameState })
   }
 
