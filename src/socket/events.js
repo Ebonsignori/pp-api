@@ -7,6 +7,7 @@ module.exports = {
   ERROR: 'error',
   JOIN_ROOM: 'join_room',
   JOINED: 'joined',
+  KEEP_ALIVE: 'keep_alive',
   GAME_STATE: 'game_state',
   USER: 'user',
   REMOVE_USER: 'remove_user',

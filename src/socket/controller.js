@@ -1,6 +1,7 @@
 'use strict'
 
 const events = require('./events')
+const logger = require('../lib/logger')
 const SocketService = require('./service')
 
 function mountOnConnection (io, socket) {
@@ -57,6 +58,11 @@ function mountOnConnection (io, socket) {
   socket.on(events.DISCONNECT, async (payload) => {
     // TODO: Tear down session after X time? OR set cookie expire elsewhere?
     return socketService.setInactive(payload)
+  })
+
+  // System events
+  socket.on(events.KEEP_ALIVE, async () => {
+    logger.silly(`Being kept alive by ${socket.id}`)
   })
 }
 
